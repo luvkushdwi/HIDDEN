@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hidden Window</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: rgba(44, 62, 80, 0.95);
+        color: white;
+      }
+
+      body,
+      input,
+      button,
+      textarea,
+      select {
+        cursor: default !important;
+      }
+
+      /* Add drag handle for window movement */
+      #drag-handle {
+        height: 40px;
+        background-color: rgba(26, 33, 41, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 15px;
+        -webkit-app-region: drag; /* This makes the area draggable */
+        cursor: move;
+      }
+
+      #drag-handle .title {
+        font-weight: bold;
+        color: #e74c3c;
+      }
+
+      #drag-handle .controls {
+        display: flex;
+        gap: 10px;
+        -webkit-app-region: no-drag; /* Make buttons clickable */
+      }
+
+      .container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #e74c3c;
+        text-align: center;
+        margin-top: 0;
+      }
+
+      .secret-content {
+        margin-top: 20px;
+        padding: 20px;
+        background-color: #34495e;
+        border-radius: 8px;
+      }
+
+      .question-box {
+        margin-top: 20px;
+        width: 100%;
+      }
+
+      .question-box textarea {
+        width: 100%;
+        height: 100px;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #3498db;
+        background-color: #2c3e50;
+        color: white;
+        font-size: 16px;
+        resize: vertical;
+      }
+
+      .question-box textarea:focus {
+        outline: none;
+        border-color: #1abc9c;
+        box-shadow: 0 0 5px rgba(26, 188, 156, 0.5);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      button {
+        padding: 10px 15px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      button#askBtn {
+        background-color: #2d642d;
+      }
+
+      button#askBtn:hover {
+        background-color: #1eb569;
+      }
+
+      button#clearBtn {
+        background-color: #e74c3c;
+      }
+
+      button#clearBtn:hover {
+        background-color: #c0392b;
+      }
+
+      /* Mic button styling */
+      button#micBtn {
+        background-color: #9b59b6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+
+      button#micBtn:hover {
+        background-color: #8e44ad;
+      }
+
+      button#micBtn.recording {
+        background-color: #e74c3c;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .note {
+        font-size: 12px;
+        margin-top: 20px;
+        color: #95a5a6;
+        text-align: center;
+      }
+
+      .api-key-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #2c3e50;
+        border: 1px solid #3498db;
+        border-radius: 6px;
+      }
+
+      .api-key-section input {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #3498db;
+        background-color: #2c3e50;
+        color: white;
+        margin-top: 5px;
+      }
+
+      .current-response {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #2c3e50;
+        border: 1px solid #3498db;
+        border-radius: 6px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .answer p {
+        background-color: #2c322f;
+        padding: 10px;
+        border-radius: 6px;
+        margin: 5px 0;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: #09f;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .setting {
+        margin-bottom: 10px;
+      }
+
+      .setting label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .setting select {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #3498db;
+        background-color: #2c3e50;
+        color: white;
+      }
+
+      /* Custom control buttons */
+      .window-control {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 5px 10px;
+      }
+
+      .window-control:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+
+      #closeBtn {
+        color: #e74c3c;
+      }
+
+      #minimizeBtn {
+        color: #f1c40f;
+      }
+
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #2c3e50;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #3498db;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #2980b9;
+      }
+
+      .keyboard-shortcuts {
+        background-color: #2c3e50;
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 6px;
+      }
+
+      .keyboard-shortcuts h3 {
+        color: #e74c3c;
+        margin-top: 0;
+      }
+
+      .keyboard-shortcuts ul {
+        padding-left: 20px;
+      }
+
+      .keyboard-shortcuts li {
+        margin-bottom: 5px;
+      }
+
+      .keyboard-shortcut-key {
+        background-color: #34495e;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid #3498db;
+        font-family: monospace;
+      }
+      
+      /* Add visual feedback for speech recognition status */
+      .speech-status {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #95a5a6;
+      }
+      
+      .speech-active {
+        color: #2ecc71;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Add draggable header -->
+    <div id="drag-handle">
+      <div class="title">Pawan Dwi Assistant</div>
+      <div class="controls">
+        <button id="minimizeBtn" class="window-control">—</button>
+        <button id="closeBtn" class="window-control">×</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <h1>Pawan Dwi Assistant</h1>
+
+      <div class="secret-content">
+        <div class="api-key-section">
+          <h3>API Configuration</h3>
+          <div class="setting">
+            <label for="apiKey">Google AI API Key:</label>
+            <input
+              type="password"
+              id="apiKey"
+              placeholder="Enter your Google AI API key here"
+            />
+          </div>
+          <div class="setting">
+            <label for="modelSelect">Model:</label>
+            <select id="modelSelect">
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+              <option value="gemini-1.5-flash" selected>
+                Gemini 1.5 Flash
+              </option>
+              <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
+              <option value="gemini-1.0-pro-vision">
+                Gemini 1.0 Pro Vision
+              </option>
+            </select>
+          </div>
+          <button id="saveSettingsBtn">Save Settings</button>
+        </div>
+
+        <div class="question-box">
+          <h3>Ask a Question</h3>
+          <textarea
+            id="questionInput"
+            placeholder="Type your question here..."
+          ></textarea>
+          <div id="speechStatus" class="speech-status"></div>
+          <div class="button-group">
+            <button id="micBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+              Mic
+            </button>
+            <button id="askBtn">Ask Gemini</button>
+            <button id="clearBtn">Clear</button>
+          </div>
+        </div>
+
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Getting answer...</p>
+        </div>
+
+        <h3>Current Response</h3>
+        <div id="currentResponseBox" class="current-response">
+          <p>Your response will appear here...</p>
+        </div>
+      </div>
+
+      <div class="keyboard-shortcuts">
+        <h3>Keyboard Shortcuts</h3>
+        <ul>
+          <li>
+            <span class="keyboard-shortcut-key">Ctrl+Alt+H</span> or
+            <span class="keyboard-shortcut-key">⌘+Alt+H</span> - Toggle window
+            visibility
+          </li>
+          <li>
+            <span class="keyboard-shortcut-key">Ctrl+Enter</span> or
+            <span class="keyboard-shortcut-key">⌘+Enter</span> - Send question
+          </li>
+          <li>
+            <span class="keyboard-shortcut-key">Esc</span> - Minimize window
+          </li>
+          <li>
+            <span class="keyboard-shortcut-key">Ctrl+M</span> or
+            <span class="keyboard-shortcut-key">⌘+M</span> - Toggle microphone
+          </li>
+        </ul>
+      </div>
+
+      <p class="note">
+        This window is invisible during screen sharing. Use Ctrl+Alt+H (Windows)
+        or ⌘+Alt+H (Mac) to toggle visibility.
+      </p>
+    </div>
+
+    <script>
+      // Initialize from localStorage
+      let apiKey = localStorage.getItem("googleApiKey") || "";
+      let selectedModel =
+        localStorage.getItem("selectedModel") || "gemini-1.5-flash";
+
+      // Elements
+      const apiKeyInput = document.getElementById("apiKey");
+      const modelSelect = document.getElementById("modelSelect");
+      const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+      const questionInput = document.getElementById("questionInput");
+      const askBtn = document.getElementById("askBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const micBtn = document.getElementById("micBtn");
+      const currentResponseBox = document.getElementById("currentResponseBox");
+      const loadingElement = document.querySelector(".loading");
+      const minimizeBtn = document.getElementById("minimizeBtn");
+      const closeBtn = document.getElementById("closeBtn");
+      const speechStatus = document.getElementById("speechStatus");
+
+      // Set initial values
+      apiKeyInput.value = apiKey;
+      modelSelect.value = selectedModel;
+
+      // Speech recognition variables
+      let isRecording = false;
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let browserRecognition = null;
+
+      // Check if we're in Electron
+      const isElectron = () => {
+        return window.navigator.userAgent.indexOf('Electron') !== -1;
+      };
+
+      // Initialize audio recording for Electron
+      async function setupMicrophoneForElectron() {
+        try {
+          // Request microphone permissions
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          
+          // Setup media recorder
+          mediaRecorder = new MediaRecorder(stream);
+          
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              audioChunks.push(event.data);
+            }
+          };
+          
+          mediaRecorder.onstop = async () => {
+            // Convert audio chunks to blob and then to base64
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            
+            try {
+              // Use browser's Speech Recognition as fallback in Electron
+              if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                
+                recognition.onstart = function() {
+                  speechStatus.textContent = "Listening...";
+                  speechStatus.classList.add("speech-active");
+                };
+                
+                recognition.onend = function() {
+                  speechStatus.textContent = "";
+                  speechStatus.classList.remove("speech-active");
+                };
+                
+                recognition.onresult = function(event) {
+                  if (event.results && event.results.length > 0) {
+                    const transcript = event.results[event.results.length - 1][0].transcript || '';
+                    questionInput.value = transcript;
+                  }
+                };
+                
+                recognition.start();
+              }
+            } catch (error) {
+              console.error('Error processing audio:', error);
+              speechStatus.textContent = `Error: ${error.message}`;
+            }
+            
+            // Reset for next recording
+            audioChunks = [];
+          };
+          
+          return true;
+        } catch (error) {
+          console.error('Error accessing microphone:', error);
+          currentResponseBox.innerHTML = `
+            <p>Microphone access error: ${error.message}</p>
+            <p>Please make sure you've granted microphone permissions to this application in your system settings.</p>
+          `;
+          return false;
+        }
+      }
+
+      // For non-Electron environments, use Web Speech API
+      function initBrowserSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = true; // Show interim results
+          recognition.maxAlternatives = 1;
+          recognition.lang = 'en-US';
+
+          recognition.onstart = function() {
+            isRecording = true;
+            updateMicButtonState(true);
+            speechStatus.textContent = "Listening...";
+            speechStatus.classList.add("speech-active");
+          };
+
+          recognition.onend = function() {
+            isRecording = false;
+            updateMicButtonState(false);
+            speechStatus.textContent = "";
+            speechStatus.classList.remove("speech-active");
+          };
+
+          recognition.onresult = function(event) {
+            let transcript = '';
+            if (event.results && event.results.length > 0) {
+              // Get the most recent result
+              const result = event.results[event.results.length - 1];
+              transcript = result[0].transcript || '';
+              
+              // Update the question input in real-time
+              questionInput.value = transcript;
+              
+              // Display interim feedback
+              if (!result.isFinal) {
+                speechStatus.textContent = "Listening: " + transcript;
+              }
+            }
+          };
+
+          recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            speechStatus.textContent = `Error: ${event.error}`;
+            isRecording = false;
+            updateMicButtonState(false);
+          };
+
+          return recognition;
+        } else {
+          micBtn.disabled = true;
+          micBtn.title = "Speech recognition not supported in this browser";
+          console.error('Speech recognition not supported');
+          return null;
+        }
+      }
+
+      // Update mic button state
+      function updateMicButtonState(recording) {
+        if (recording) {
+          micBtn.classList.add('recording');
+          micBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            Stop
+          `;
+        } else {
+          micBtn.classList.remove('recording');
+          micBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            Mic
+          `;
+        }
+      }
+
+      // Start recording
+      async function startRecording() {
+        if (isElectron()) {
+          if (mediaRecorder && mediaRecorder.state !== 'recording') {
+            audioChunks = [];
+            mediaRecorder.start();
+            isRecording = true;
+            updateMicButtonState(true);
+            speechStatus.textContent = "Listening...";
+            speechStatus.classList.add("speech-active");
+          } else if (!mediaRecorder) {
+            const setupSuccess = await setupMicrophoneForElectron();
+            if (setupSuccess && mediaRecorder) {
+              audioChunks = [];
+              console.log('Microphone initialized successfully');
+              mediaRecorder.start();
+              isRecording = true;
+              updateMicButtonState(true);
+              speechStatus.textContent = "Listening...";
+              speechStatus.classList.add("speech-active");
+            }
+          }
+        } else {
+          // Browser environment
+          if (!browserRecognition) {
+            browserRecognition = initBrowserSpeechRecognition();
+          }
+          
+          if (browserRecognition) {
+            try {
+              browserRecognition.start();
+            } catch (error) {
+              console.error('Error starting speech recognition:', error);
+              speechStatus.textContent = `Error: ${error.message}`;
+            }
+          }
+        }
+      }
+
+      // Stop recording
+      function stopRecording() {
+        if (isElectron()) {
+          if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            isRecording = false;
+            updateMicButtonState(false);
+            speechStatus.textContent = "";
+            speechStatus.classList.remove("speech-active");
+          }
+        } else {
+          // Browser environment
+          if (browserRecognition) {
+            try {
+              browserRecognition.stop();
+            } catch (error) {
+              console.error('Error stopping speech recognition:', error);
+            }
+          }
+          isRecording = false;
+          updateMicButtonState(false);
+          speechStatus.textContent = "";
+          speechStatus.classList.remove("speech-active");
+        }
+      }
+
+      // Toggle recording
+      async function toggleRecording() {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          await startRecording();
+        }
+      }
+
+      // Initialize speech recognition on page load
+      if (!isElectron()) {
+        browserRecognition = initBrowserSpeechRecognition();
+      }
+
+      // Mic button handler
+      micBtn.addEventListener('click', toggleRecording);
+
+      // Window control handlers
+      if (minimizeBtn && window.electronAPI) {
+        minimizeBtn.addEventListener("click", () => {
+          window.electronAPI.minimizeWindow();
+        });
+      }
+
+      if (closeBtn && window.electronAPI) {
+        closeBtn.addEventListener("click", () => {
+          window.electronAPI.closeWindow();
+        });
+      }
+
+      // Format answer with simple line breaks
+      function formatAnswer(text) {
+        return text.replace(/\n/g, "<br>");
+      }
+
+      // Escape HTML to prevent XSS
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Save settings
+      saveSettingsBtn.addEventListener("click", () => {
+        apiKey = apiKeyInput.value.trim();
+        selectedModel = modelSelect.value;
+
+        localStorage.setItem("googleApiKey", apiKey);
+        localStorage.setItem("selectedModel", selectedModel);
+        
+        currentResponseBox.innerHTML = "<p>Settings saved successfully!</p>";
+      });
+
+      // Ask Gemini
+      askBtn.addEventListener("click", async () => {
+        const question = questionInput.value.trim();
+        if (!question) {
+          return;
+        }
+
+        if (!apiKey) {
+          currentResponseBox.innerHTML =
+            "<p>Please enter your Google AI API key in the settings</p>";
+          return;
+        }
+
+        // Show loading
+        loadingElement.style.display = "block";
+        currentResponseBox.innerHTML = "<p>Getting response...</p>";
+
+        try {
+          const answer = await askGemini(question);
+
+          // Display current response
+          currentResponseBox.innerHTML = `
+            <div class="answer">
+              <p>${formatAnswer(answer)}</p>
+            </div>
+          `;
+        } catch (error) {
+          currentResponseBox.innerHTML = `<p>Error: ${error.message}</p>`;
+          console.error("Error asking Gemini:", error);
+        } finally {
+          // Hide loading
+          loadingElement.style.display = "none";
+        }
+      });
+
+      // Ask Gemini function
+      async function askGemini(question) {
+        const prompt = `I am currently in a live technical interview. Whatever question I ask, please provide an answer that sounds natural and as if I'm speaking from my own knowledge—not like I'm reading from a script. The answers should be confident, conversational, and personalized.
+
+        Question : ${question}
+
+        `;
+        console.log("Asking Gemini:", question);
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [{ text: prompt }],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.7,
+                },
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.error?.message || "Failed to get response from Gemini"
+            );
+          }
+
+          const data = await response.json();
+          // Extract the text content from Gemini's response format
+          return data.candidates[0].content.parts[0].text;
+        } catch (error) {
+          console.error("Error fetching response from Gemini:", error);
+          throw error;
+        }
+      }
+
+      // Clear input
+      clearBtn.addEventListener("click", () => {
+        questionInput.value = "";
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        // Cmd+Enter or Ctrl+Enter to ask
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          askBtn.click();
+        }
+
+        // Esc to minimize
+        if (e.key === "Escape" && window.electronAPI) {
+          window.electronAPI.minimizeWindow();
+        }
+
+        // Ctrl+Alt+H or Cmd+Alt+H to toggle visibility
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.altKey &&
+          e.key === "h" &&
+          window.electronAPI
+        ) {
+          window.electronAPI.toggleWindow();
+        }
+
+        // Ctrl+M or Cmd+M to toggle microphone
+        if ((e.ctrlKey || e.metaKey) && e.key === "m") {
+          toggleRecording();
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
+</html>

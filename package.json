@@ -1,0 +1,16 @@
+{
+  "name": "hidden-window-app",
+  "version": "1.0.0",
+  "description": "An application with a window hidden from screen sharing on macOS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "active-win": "^9.0.0",
+    "axios": "^1.8.4",
+    "electron": "^28.1.0"
+  }
+}
